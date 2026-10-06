@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>食堂ホール 座席配置表（A4印刷対応・2F/3F対応）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f1f5f9;
+    }
+
+    /* A4 横向き設定 (297mm × 210mm) */
+    @page {
+      size: A4 landscape;
+      margin: 3mm;
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-page {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        padding: 2mm 3mm !important;
+        box-shadow: none !important;
+        border: none !important;
+        page-break-inside: avoid;
+        page-break-after: avoid;
+      }
+      .seat-card {
+        box-shadow: none !important;
+      }
+
+      /* 印刷時：テレビ以外の設備（流し台・冷蔵庫・出入口など）を非表示にして座席エリアを最大化 */
+      .facility-sink-top,
+      .facility-sink-right,
+      .facility-corner {
+        display: none !important;
+      }
+
+      /* 印刷時のホールグリッド：テレビ(36px)＋座席テーブルのみの2列構成で用紙全体へ最大拡張 */
+      .hall-grid {
+        display: grid !important;
+        grid-template-columns: 36px 1fr !important;
+        grid-template-rows: 1fr !important;
+        gap: 4px !important;
+        height: calc(100% - 30px) !important;
+      }
+
+      /* 印刷時の座席カード限界拡大スタイル */
+      .seat-card {
+        height: 100% !important;
+        min-height: 136px !important;
+        padding: 4px 5px !important;
+        border-width: 2px !important;
+        border-color: #475569 !important;
+      }
+
+      /* 印刷時：文字エリアを圧迫しないバランスの良い特大写真 (50px) */
+      .resident-photo {
+        width: 50px !important;
+        height: 50px !important;
+        border-radius: 8px !important;
+        border-width: 1.5px !important;
+        flex-shrink: 0 !important;
+      }
+
+      /* 印刷時：テキストエリアを最大化し、文字切れを完全に防止 */
+      .resident-text-wrap {
+        overflow: visible !important;
+        padding-left: 3px !important;
+      }
+
+      /* 印刷時：ふりがなとお名前（切れない限界特大サイズ・文字詰め） */
+      .resident-kana {
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+        font-weight: 800 !important;
+        color: #047857 !important;
+        overflow: visible !important;
+        letter-spacing: -0.3px !important;
+      }
+      .resident-name {
+        font-size: 15px !important;
+        line-height: 1.25 !important;
+        font-weight: 900 !important;
+        color: #000000 !important;
+        overflow: visible !important;
+        letter-spacing: -0.4px !important;
+      }
+      .resident-name-suffix {
+        font-size: 10px !important;
+        color: #334155 !important;
+        font-weight: 700 !important;
+      }
+
+      /* テーブルバーのスリム化（座席カードの縦幅を増やすためスッキリ調整） */
+      .table-bar {
+        height: 22px !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+      }
+
+      /* 通路をギリギリまでスリム化・仕切り化して座席エリアへスペース全還元 */
+      .main-aisle {
+        margin: 2px 0 !important;
+        padding: 0 !important;
+        height: 15px !important;
+        min-height: 15px !important;
+        background-color: transparent !important;
+        border-color: #94a3b8 !important;
+      }
+      .main-aisle span {
+        font-size: 8px !important;
+        color: #64748b !important;
+      }
+    }
+
+    /* ドラッグ＆ドロップ用スタイル */
+    .seat-card.is-dragging {
+      opacity: 0.4;
+      transform: scale(0.96);
+    }
+    .seat-slot.drag-hover > div {
+      border-color: #10b981 !important;
+      background-color: #ecfdf5 !important;
+      box-shadow: 0 0 0 2px #10b981 !important;
+      transform: scale(1.02);
+    }
+
+    /* 画面表示用のA4比率コンテナ */
+    .a4-container {
+      width: 100%;
+      max-width: 1160px;
+      aspect-ratio: 297 / 210;
+      background: #ffffff;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ヘッダー（印刷時は非表示） -->
+  <header class="no-print bg-slate-900 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- タイトル & 階数切り替えタブ -->
+      <div class="flex items-center space-x-3">
+        <div class="bg-emerald-500 text-white p-2 rounded-lg font-bold text-lg leading-none">🪑</div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold tracking-tight">食堂ホール座席表</h1>
+            <!-- 階数切り替えピルボタン -->
+            <div class="inline-flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 ml-2">
+              <button id="btnFloor2" onclick="switchFloor(2)" class="px-3 py-1 rounded-md text-xs font-bold transition bg-emerald-600 text-white shadow-sm">
+                2階
+              </button>
+              <button id="btnFloor3" onclick="switchFloor(3)" class="px-3 py-1 rounded-md text-xs font-bold transition text-slate-300 hover:text-white">
+                3階
+              </button>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400">外国人実習生向け・大きな顔写真＆ふりがな表示・タップで食事詳細確認</p>
+        </div>
+      </div>
+      
+      <!-- 各種操作ボタン -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- GAS・クラウド同期ステータス＆設定ボタン -->
+        <button id="btnGasModal" class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow flex items-center gap-1.5 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+          <span>🌐 GAS・端末同期</span>
+          <span id="syncStatusBadge" class="w-2 h-2 rounded-full bg-slate-400" title="未接続"></span>
+        </button>
+        <button id="btnExport" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 text-slate-300 transition">
+          💾 保存 (JSON)
+        </button>
+        <label class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 text-slate-300 cursor-pointer transition">
+          📂 読込
+          <input type="file" id="inputImport" accept=".json" class="hidden">
+        </label>
+        <button id="btnPrint" class="px-4 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow flex items-center gap-1.5 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          A4印刷プレビュー
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 flex justify-center items-center p-2 sm:p-3 overflow-auto">
+    <div id="printArea" class="a4-container print-page rounded-xl p-2.5 sm:p-4 flex flex-col justify-between border border-slate-300 bg-white relative">
+      
+      <!-- ヘッダー（タイトル＆詳細凡例） -->
+      <div class="flex justify-between items-center border-b pb-1.5 mb-1.5">
+        <div class="flex items-center gap-2">
+          <input id="facilityNameInput" type="text" value="食堂ホール 座席配置表" class="text-base sm:text-lg font-bold text-slate-800 border-b border-transparent hover:border-slate-300 focus:border-emerald-500 focus:outline-none bg-transparent px-1 py-0.5">
+          <span id="currentFloorBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">2階ホール (計20席)</span>
+        </div>
+        <!-- 凡例 -->
+        <div class="flex items-center gap-2.5 text-[9px] font-medium text-slate-600">
+          <span class="text-slate-400">【介助区分】</span>
+          <span class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200">自立</span>
+          <span class="px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 font-bold border border-amber-200">見守り</span>
+          <span class="px-1.5 py-0.2 rounded bg-orange-50 text-orange-800 font-bold border border-orange-200">一部介助</span>
+          <span class="px-1.5 py-0.2 rounded bg-rose-50 text-rose-800 font-bold border border-rose-200">全介助</span>
+          <span class="font-bold ml-1 text-slate-700">♿ 車椅子</span>
+          <span class="text-rose-600 font-bold ml-1">⚠️ 禁食/アレルギー注意</span>
+        </div>
+      </div>
+
+      <!-- 全体ホールグリッド構造 -->
+      <div id="hallGrid" class="hall-grid flex-1 grid grid-cols-[52px_1fr_52px] grid-rows-[38px_1fr] gap-2 min-h-0 relative">
+        
+        <!-- 左上コーナー（余白） -->
+        <div class="facility-corner rounded-lg border border-dashed border-slate-200"></div>
+
+        <!-- 上側設備：流し台 ＆ 冷蔵庫（印刷時は非表示） -->
+        <div class="facility-sink-top grid grid-cols-[1fr_105px] gap-2">
+          <div class="bg-cyan-50 border border-cyan-400 rounded-lg flex items-center justify-center text-cyan-800 font-bold text-[11px] shadow-xs gap-1.5 px-2">
+            <svg class="w-3.5 h-3.5 text-cyan-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <span class="truncate">流し台・配膳カウンター</span>
+          </div>
+          <div class="bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-center text-indigo-800 font-bold text-[11px] shadow-xs gap-1">
+            <svg class="w-3.5 h-3.5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            <span>冷蔵庫</span>
+          </div>
+        </div>
+
+        <!-- 右上コーナー（余白） -->
+        <div class="facility-corner rounded-lg border border-dashed border-slate-200"></div>
+
+        <!-- 左側設備：テレビ（印刷時も位置の目印として残す） -->
+        <div class="flex flex-col justify-center items-center h-full">
+          <div class="w-full h-32 bg-slate-100 border border-slate-400 rounded-lg flex flex-col items-center justify-center text-slate-700 font-bold text-[11px] shadow-xs">
+            <svg class="w-4 h-4 text-slate-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            <span class="[writing-mode:vertical-rl] tracking-widest text-[11px] font-bold">テレビ</span>
+          </div>
+        </div>
+
+        <!-- 中央フロア：均等テーブル＆座席カード（上下段の間の中央通路を広く確保） -->
+        <div class="flex flex-col justify-between px-0.5 py-0 h-full">
+          
+          <!-- 上段ブロック：テーブル2台（均等サイズ：2カラム×2台） -->
+          <div class="w-full">
+            <!-- 上段・上席 (席0〜3) -->
+            <div class="grid grid-cols-6 gap-1.5 w-full mb-1">
+              <div id="seat-0" class="seat-slot"></div>
+              <div id="seat-1" class="seat-slot"></div>
+              <div id="seat-2" class="seat-slot"></div>
+              <div id="seat-3" class="seat-slot"></div>
+              <div class="col-span-2"></div>
+            </div>
+
+            <!-- 上段テーブル本体 -->
+            <div class="grid grid-cols-6 gap-1.5 w-full h-6 table-bar">
+              <div class="col-span-2 bg-amber-100 border-2 border-amber-400 rounded flex items-center justify-center font-bold text-[11px] text-amber-900 shadow-xs">
+                テーブル A-1
+              </div>
+              <div class="col-span-2 bg-amber-100 border-2 border-amber-400 rounded flex items-center justify-center font-bold text-[11px] text-amber-900 shadow-xs">
+                テーブル A-2
+              </div>
+              <div class="col-span-2"></div>
+            </div>
+
+            <!-- 上段・下席 (席4〜7) -->
+            <div class="grid grid-cols-6 gap-1.5 w-full mt-1">
+              <div id="seat-4" class="seat-slot"></div>
+              <div id="seat-5" class="seat-slot"></div>
+              <div id="seat-6" class="seat-slot"></div>
+              <div id="seat-7" class="seat-slot"></div>
+              <div class="col-span-2"></div>
+            </div>
+          </div>
+
+          <!-- 中央メイン通路（ゆとりをしっかり確保） -->
+          <div class="main-aisle w-full my-1 sm:my-1.5 py-1 bg-slate-100/90 rounded border border-dashed border-slate-300 flex items-center justify-center">
+            <span class="text-[9px] text-slate-500 tracking-widest font-extrabold flex items-center gap-1.5">
+              <span>🚶 通路（車椅子・配膳動線）</span>
+            </span>
+          </div>
+
+          <!-- 下段ブロック：テーブル3台（均等サイズ：2カラム×3台＝計6カラム） -->
+          <div class="w-full">
+            <!-- 下段・上席 (席8〜13) -->
+            <div class="grid grid-cols-6 gap-1.5 w-full mb-1">
+              <div id="seat-8" class="seat-slot"></div>
+              <div id="seat-9" class="seat-slot"></div>
+              <div id="seat-10" class="seat-slot"></div>
+              <div id="seat-11" class="seat-slot"></div>
+              <div id="seat-12" class="seat-slot"></div>
+              <div id="seat-13" class="seat-slot"></div>
+            </div>
+
+            <!-- 下段テーブル本体 -->
+            <div class="grid grid-cols-6 gap-1.5 w-full h-6 table-bar">
+              <div class="col-span-2 bg-amber-100 border-2 border-amber-400 rounded flex items-center justify-center font-bold text-[11px] text-amber-900 shadow-xs">
+                テーブル B-1
+              </div>
+              <div class="col-span-2 bg-amber-100 border-2 border-amber-400 rounded flex items-center justify-center font-bold text-[11px] text-amber-900 shadow-xs">
+                テーブル B-2
+              </div>
+              <div class="col-span-2 bg-amber-100 border-2 border-amber-400 rounded flex items-center justify-center font-bold text-[11px] text-amber-900 shadow-xs">
+                テーブル B-3
+              </div>
+            </div>
+
+            <!-- 下段・下席 (席14〜19) -->
+            <div class="grid grid-cols-6 gap-1.5 w-full mt-1">
+              <div id="seat-14" class="seat-slot"></div>
+              <div id="seat-15" class="seat-slot"></div>
+              <div id="seat-16" class="seat-slot"></div>
+              <div id="seat-17" class="seat-slot"></div>
+              <div id="seat-18" class="seat-slot"></div>
+              <div id="seat-19" class="seat-slot"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 右側設備：細くスリム化した流し台 ＆ 右下出入口（印刷時は非表示） -->
+        <div class="facility-sink-right flex flex-col gap-2 h-full">
+          <!-- 右側流し台（スリム化） -->
+          <div class="flex-1 bg-cyan-50 border border-cyan-400 rounded-lg flex flex-col items-center justify-center p-1 text-cyan-800 font-bold text-[10px] shadow-xs">
+            <svg class="w-3.5 h-3.5 text-cyan-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <span class="[writing-mode:vertical-rl] tracking-widest text-[10px]">流し台</span>
+          </div>
+
+          <!-- 右下：出入口 -->
+          <div class="h-24 bg-emerald-50 border border-dashed border-emerald-400 rounded-lg flex flex-col items-center justify-center p-1 text-emerald-800 font-bold text-[10px] shadow-xs">
+            <svg class="w-3.5 h-3.5 text-emerald-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+            <span class="[writing-mode:vertical-rl] tracking-widest text-[10px]">出入口</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- フッター -->
+      <div class="text-[9px] text-slate-400 flex justify-between items-center border-t pt-1 mt-1">
+        <span>※ ドラッグ＆ドロップで席替え移動、クリックで写真・詳細編集が可能です。</span>
+        <span id="printDate">印刷日: </span>
+      </div>
+    </div>
+  </main>
+
+  <!-- GAS（Google Apps Script）クラウド同期モーダル -->
+  <div id="gasModal" class="no-print fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+      
+      <!-- モーダルヘッダー -->
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-base">🌐</div>
+          <div>
+            <h3 class="font-bold text-sm">全デバイス共有設定（Google Apps Script連携）</h3>
+            <p class="text-[11px] text-slate-400">PC・iPad・スマホ等、すべての端末で座席表を常に同じ状態に同期</p>
+          </div>
+        </div>
+        <button id="gasModalCloseBtn" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <!-- モーダル本文（スクロール可） -->
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs">
+        
+        <!-- Web App URL設定エリア -->
+        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3.5 space-y-2">
+          <div class="flex justify-between items-center">
+            <label class="font-bold text-indigo-950 flex items-center gap-1.5">
+              <span>デプロイしたGASウェブアプリURL</span>
+            </label>
+            <span id="gasStatusText" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">未設定</span>
+          </div>
+          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 text-xs bg-white rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <label class="inline-flex items-center cursor-pointer select-none">
+              <input type="checkbox" id="autoSyncCheck" checked class="w-3.5 h-3.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+              <span class="ml-1.5 font-medium text-slate-700">席替えや編集時に自動同期（自動送信）</span>
+            </label>
+            <div class="flex gap-2">
+              <button id="btnGasPull" type="button" class="px-2.5 py-1 font-semibold bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-300 rounded shadow-xs transition flex items-center gap-1">
+                📥 クラウドから最新を取得
+              </button>
+              <button id="btnGasPush" type="button" class="px-3 py-1 font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded shadow-xs transition flex items-center gap-1">
+                📤 今すぐクラウドへ保存
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3ステップ導入ガイド -->
+        <div class="border border-slate-200 rounded-xl p-3.5 bg-slate-50 space-y-3">
+          <h4 class="font-bold text-slate-800 flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✔</span>
+            3分で完了！ Googleスプレッドシート＆GASの設置手順
+          </h4>
+          
+          <ol class="list-decimal list-inside space-y-2 text-slate-600 pl-1 leading-relaxed">
+            <li>
+              Googleドライブで新規<strong>Googleスプレッドシート</strong>を開き、メニューの<strong>「拡張機能」→「Apps Script」</strong>を開きます。
+            </li>
+            <li>
+              エディタ内の既存コードを消し、下の<strong>「GASコードをコピー」</strong>を押して貼り付け、保存（フロッピーアイコン）を押します。
+            </li>
+            <li>
+              右上の<strong>「デプロイ」→「新しいデプロイ」</strong>を選択。<br>
+              種類で<strong>「ウェブアプリ」</strong>を選び、アクセスできるユーザーを<strong>「全員（Anyone）」</strong>にしてデプロイ。発行されたURLを上の入力欄に貼り付ければ完了です！
+            </li>
+          </ol>
+        </div>
+
+        <!-- GASスクリプト表示エリア -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-slate-700">GAS貼り付け用スクリプト</span>
+            <button id="btnCopyGasCode" type="button" class="px-2.5 py-1 text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-white rounded transition flex items-center gap-1">
+              📋 GASコードをコピー
+            </button>
+          </div>
+          <pre id="gasCodePre" class="p-2.5 bg-slate-900 text-slate-200 rounded-lg text-[10px] font-mono overflow-x-auto max-h-40 select-all"></pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 入居者編集モーダル（写真・氏名・ふりがな・生年月日・食事詳細・介助区分等） -->
+  <div id="residentModal" class="no-print fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[95vh]">
+      
+      <div class="bg-slate-900 text-white px-5 py-3 flex justify-between items-center shrink-0">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <span id="modalFloorLabel" class="bg-slate-700 text-xs px-2 py-0.5 rounded font-bold">2階</span>
+          <span id="modalSeatLabel" class="bg-emerald-600 text-xs px-2 py-0.5 rounded font-mono">席 01</span>
+          入居者様・食事詳細設定
+        </h3>
+        <button id="modalCloseBtn" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <form id="residentForm" class="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs">
+        
+        <!-- 写真・お名前・ふりがな -->
+        <div class="flex items-start gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-dashed border-slate-300 bg-white flex items-center justify-center shrink-0">
+            <img id="modalPreviewImg" class="w-full h-full object-cover hidden" alt="写真プレビュー">
+            <span id="modalNoPhotoText" class="text-[10px] text-slate-400 text-center px-1 font-medium">写真なし</span>
+            <!-- 顔認識中スピナーバッジ -->
+            <div id="faceDetectBadge" class="absolute inset-0 bg-black/60 backdrop-blur-[1px] text-white hidden flex-col items-center justify-center text-[9px] font-bold">
+              <svg class="animate-spin h-4 w-4 text-emerald-400 mb-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span>処理中</span>
+            </div>
+          </div>
+          <div class="flex-1 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                <span>お顔写真</span>
+                <span class="text-[9px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full">✨ 自由トリミング対応</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <button type="button" id="modalOpenCropBtn" class="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold hidden flex items-center gap-0.5">
+                  ✂️ 位置・拡大を再調整
+                </button>
+                <button type="button" id="modalRemovePhotoBtn" class="text-[10px] text-rose-500 hover:underline">写真を削除</button>
+              </div>
+            </div>
+            <input type="file" id="modalPhotoInput" accept="image/*" class="text-[11px] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+            <p id="faceDetectedStatusMsg" class="text-[9.5px] text-slate-400 leading-tight">※ 写真を選ぶと手動で位置移動やズーム調整ができます。</p>
+          </div>
+        </div>
+
+        <!-- 氏名（漢字） ＆ ふりがな -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">お名前（漢字）<span class="text-rose-500">*</span></label>
+            <input type="text" id="modalNameInput" placeholder="例: 佐藤 花子" class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ふりがな</label>
+            <input type="text" id="modalKanaInput" placeholder="例: さとう はなこ" class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <!-- 生年月日 ＆ 年齢（自動算出） ＆ 介助・車椅子 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">生年月日</label>
+            <input type="date" id="modalBirthInput" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">年齢 (自動算出)</label>
+            <input type="text" id="modalAgeInput" readonly placeholder="生年月日から算出" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 font-bold text-slate-700">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">介助の有無</label>
+            <select id="modalCareSelect" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="none">自立</option>
+              <option value="watch">見守り</option>
+              <option value="part">一部介助</option>
+              <option value="full">全介助</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-0.5">
+          <label class="inline-flex items-center cursor-pointer select-none">
+            <input type="checkbox" id="modalWheelchairCheck" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+            <span class="ml-2 text-xs font-bold text-slate-700">♿ 車椅子利用</span>
+          </label>
+        </div>
+
+        <!-- 食事形態詳細グループ -->
+        <div class="border border-emerald-200 bg-emerald-50/40 rounded-xl p-3 space-y-2.5">
+          <div class="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
+            <span>🍽️ 食事形態詳細</span>
+          </div>
+
+          <!-- 主食 ＆ 主食量 -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-0.5">主食区分</label>
+              <select id="modalStapleSelect" class="w-full px-2 py-1.5 text-xs rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <option value="常食">常食（白米）</option>
+                <option value="軟飯">軟飯</option>
+                <option value="全粥">全粥（粥飯）</option>
+                <option value="5分粥">5分粥</option>
+                <option value="ミキサー粥">ミキサー粥</option>
+                <option value="パン食">パン食</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-0.5">主食の量 (g)</label>
+              <input type="text" id="modalStapleGram" placeholder="例: 150g, 100g" class="w-full px-2 py-1.5 text-xs rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            </div>
+          </div>
+
+          <!-- 副食 -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 mb-0.5">副食区分</label>
+            <select id="modalSideSelect" class="w-full px-2 py-1.5 text-xs rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="常食">常食</option>
+              <option value="一口大">一口大</option>
+              <option value="刻み">刻み</option>
+              <option value="極刻み">極刻み</option>
+              <option value="ミキサー">ミキサー（ペースト）</option>
+              <option value="ゼリー食">ゼリー食</option>
+            </select>
+          </div>
+
+          <!-- 汁物（トロミの有無・量） -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-0.5">汁物（トロミの有無）</label>
+              <select id="modalSoupThickSelect" class="w-full px-2 py-1.5 text-xs rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <option value="なし">トロミなし</option>
+                <option value="薄い">薄いトロミ</option>
+                <option value="中間">中間トロミ</option>
+                <option value="濃い">濃いトロミ</option>
+                <option value="具のみ">具のみ提供</option>
+                <option value="提供なし">提供なし</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-0.5">汁物の量 (g/cc)</label>
+              <input type="text" id="modalSoupGram" placeholder="例: 100g, 120cc" class="w-full px-2 py-1.5 text-xs rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- 禁止食・アレルギー（赤枠で目立たせる） -->
+        <div class="border border-rose-200 bg-rose-50/50 rounded-xl p-3 space-y-1">
+          <label class="block text-xs font-bold text-rose-800">⚠️ 禁止食・アレルギー</label>
+          <input type="text" id="modalAllergyInput" placeholder="例: 生魚NG、エビ・カニアレルギー、そば禁止、卵除去" class="w-full px-3 py-1.5 text-xs rounded-lg border border-rose-300 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500 text-rose-900 font-semibold">
+        </div>
+
+        <!-- 特記事項・介助メモ -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">介助メモ・その他特記事項</label>
+          <input type="text" id="modalNoteInput" placeholder="例: 右麻痺あり・食事用エプロン着用・水分摂取を促す" class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <!-- ボタンアクション -->
+        <div class="pt-2 flex justify-between items-center border-t border-slate-100">
+          <button type="button" id="modalClearSeatBtn" class="px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-md font-semibold transition">
+            空席にする
+          </button>
+          <div class="flex gap-2">
+            <button type="button" id="modalCancelBtn" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-md font-medium">キャンセル</button>
+            <button type="submit" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold shadow">保存する</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- 外国人実習生向け 特大写真＆お名前確認モーダル（1タップ目で表示） -->
+  <div id="quickViewModal" class="no-print fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in duration-150">
+      
+      <!-- ヘッダー -->
+      <div class="bg-slate-900 text-white px-5 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span id="quickFloorLabel" class="bg-emerald-600 text-white text-xs px-2.5 py-0.5 rounded-full font-bold">2階</span>
+          <span id="quickSeatLabel" class="bg-slate-800 text-slate-200 text-xs px-2.5 py-0.5 rounded-full font-mono font-bold">席 01</span>
+        </div>
+        <button id="quickCloseBtn" type="button" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <!-- 特大写真 ＆ フルネーム・ふりがな表示エリア -->
+      <div class="p-5 flex flex-col items-center text-center space-y-3">
+        <!-- 特大顔写真 -->
+        <div class="relative w-36 h-36 sm:w-44 sm:h-44 rounded-2xl overflow-hidden shadow-lg border-4 border-slate-100 bg-slate-100 flex items-center justify-center">
+          <img id="quickPhotoImg" src="" alt="顔写真" class="w-full h-full object-cover">
+          <div id="quickNoPhoto" class="text-slate-400 font-bold text-xs flex flex-col items-center">
+            <span class="text-3xl mb-1">👤</span>
+            <span>写真なし</span>
+          </div>
+        </div>
+
+        <!-- ふりがな（特大・濃いエメラルド） -->
+        <div class="w-full">
+          <p id="quickKana" class="text-base sm:text-lg font-black text-emerald-700 leading-tight mb-0.5 tracking-wide">
+            さとう はなこ
+          </p>
+          <!-- 漢字フルネーム（特大・濃い黒） -->
+          <h2 id="quickName" class="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight leading-snug">
+            佐藤 花子 <span class="text-base font-bold text-slate-500">様</span>
+          </h2>
+        </div>
+
+        <!-- 介助・車椅子・アレルギーの要約バッジ -->
+        <div class="flex flex-wrap items-center justify-center gap-2 pt-1 w-full">
+          <span id="quickCareBadge" class="px-3 py-1 rounded-full font-black text-xs bg-slate-100 text-slate-700 border border-slate-300">
+            自立
+          </span>
+          <span id="quickWheelchairBadge" class="px-2.5 py-1 rounded-full font-black text-xs bg-blue-100 text-blue-800 border border-blue-300 hidden">
+            ♿ 車椅子
+          </span>
+          <span id="quickAllergyBadge" class="px-2.5 py-1 rounded-full font-black text-xs bg-rose-100 text-rose-800 border border-rose-300 hidden">
+            ⚠️ 禁食あり
+          </span>
+        </div>
+      </div>
+
+      <!-- アクションボタンエリア -->
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col gap-2">
+        <button id="quickOpenDetailBtn" type="button" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition">
+          <span>🍽️ 食事内容・詳細を見る (編集)</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        <button id="quickCancelBtn" type="button" class="w-full py-1.5 text-xs text-slate-500 hover:text-slate-800 font-medium">
+          とじる
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 手動画像トリミング専用モーダル -->
+  <div id="cropModal" class="no-print fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col">
+      <div class="bg-slate-900 text-white px-4 py-3 flex justify-between items-center">
+        <h3 class="font-bold text-xs flex items-center gap-1.5">
+          <span>✂️ 写真の切り抜き・位置調整</span>
+        </h3>
+        <button id="cropCloseBtn" type="button" class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 space-y-3 flex flex-col items-center">
+        <!-- 切り抜きキャンバス操作エリア -->
+        <div class="relative w-[240px] h-[240px] bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center select-none cursor-grab active:cursor-grabbing border border-slate-700">
+          <canvas id="cropCanvas" width="240" height="240" class="block w-full h-full"></canvas>
+          
+          <!-- 円形切り抜きガイドオーバーレイ（SVGマスク） -->
+          <div class="absolute inset-0 pointer-events-none">
+            <svg class="w-full h-full" viewBox="0 0 240 240">
+              <defs>
+                <mask id="cropMask">
+                  <rect width="240" height="240" fill="white" />
+                  <circle cx="120" cy="120" r="100" fill="black" />
+                </mask>
+              </defs>
+              <!-- 円の外側を半透明の黒で覆う -->
+              <rect width="240" height="240" fill="rgba(0, 0, 0, 0.6)" mask="url(#cropMask)" />
+              <!-- 円枠ガイドライン -->
+              <circle cx="120" cy="120" r="100" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4 2" />
+            </svg>
+          </div>
+
+          <div class="absolute bottom-1.5 left-2 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded pointer-events-none">
+            ドラッグで写真移動
+          </div>
+        </div>
+
+        <!-- コントロールバー（拡大縮小・回転） -->
+        <div class="w-full space-y-2 text-xs">
+          <!-- 拡大スライダー -->
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500 font-bold text-[11px] shrink-0">拡大:</span>
+            <button type="button" id="cropZoomOutBtn" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs">－</button>
+            <input type="range" id="cropZoomRange" min="0.5" max="3.0" step="0.05" value="1.0" class="flex-1 accent-emerald-600">
+            <button type="button" id="cropZoomInBtn" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs">＋</button>
+          </div>
+
+          <!-- 回転ボタン ＆ リセット -->
+          <div class="flex justify-between items-center pt-1 border-t border-slate-100">
+            <button type="button" id="cropRotateBtn" class="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium flex items-center gap-1 transition">
+              🔄 90°回転
+            </button>
+            <button type="button" id="cropResetBtn" class="text-[11px] text-slate-500 hover:text-slate-800 underline">
+              位置をリセット
+            </button>
+          </div>
+        </div>
+
+        <!-- 決定・キャンセルボタン -->
+        <div class="w-full flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="cropCancelBtn" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-md font-medium">キャンセル</button>
+          <button type="button" id="cropConfirmBtn" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold shadow transition flex items-center gap-1">
+            <span>✅ この範囲で決定</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL_SEATS = 20;
+
+    // 介助区分のスタイル定義
+    const CARE_STYLES = {
+      none:  { label: '自立', bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
+      watch: { label: '見守り', bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300' },
+      part:  { label: '一部介助', bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300' },
+      full:  { label: '全介助', bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-300' },
+    };
+
+    // 生年月日からの年齢自動算出
+    function calculateAge(birthDateStr) {
+      if (!birthDateStr) return '';
+      const birth = new Date(birthDateStr);
+      if (isNaN(birth.getTime())) return '';
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age >= 0 ? `${age}歳` : '';
+    }
+
+    // 和暦・簡易日付フォーマット表示 (例: 1935-04-12 -> S10.4.12)
+    function formatBirthDate(birthDateStr) {
+      if (!birthDateStr) return '';
+      const parts = birthDateStr.split('-');
+      if (parts.length !== 3) return birthDateStr;
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      
+      let era = '';
+      let eraYear = y;
+      if (y >= 2019) {
+        era = 'R';
+        eraYear = y - 2018 === 1 ? 1 : y - 2018;
+      } else if (y >= 1989) {
+        era = 'H';
+        eraYear = y - 1988 === 1 ? 1 : y - 1988;
+      } else if (y >= 1926) {
+        era = 'S';
+        eraYear = y - 1925 === 1 ? 1 : y - 1925;
+      } else if (y >= 1912) {
+        era = 'T';
+        eraYear = y - 1911 === 1 ? 1 : y - 1911;
+      }
+      return era ? `${era}${eraYear}.${m}.${d}` : `${y}.${m}.${d}`;
+    }
+
+    // 2階・3階の初期空席データ生成
+    function createEmptyFloorData() {
+      return Array.from({ length: TOTAL_SEATS }, (_, i) => ({
+        id: i,
+        seatNumber: i + 1,
+        name: '',
+        kana: '',
+        birth: '',
+        age: '',
+        care: 'none',
+        wheelchair: false,
+        staple: '常食',
+        stapleGram: '150g',
+        side: '常食',
+        soupThick: 'なし',
+        soupGram: '100g',
+        allergy: '',
+        note: '',
+        photo: ''
+      }));
+    }
+
+    // 階層データ管理
+    const floorData = {
+      2: {
+        title: '2階 食堂ホール 座席配置表',
+        seats: createEmptyFloorData()
+      },
+      3: {
+        title: '3階 食堂ホール 座席配置表',
+        seats: createEmptyFloorData()
+      }
+    };
+
+    let currentFloor = 2;
+    let currentEditingSeatId = null;
+
+    let draggedSeatId = null;
+    let isDraggingActive = false;
+
+    // ドラッグ開始
+    window.handleDragStart = function(e, seatId) {
+      draggedSeatId = seatId;
+      isDraggingActive = true;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', seatId.toString());
+      
+      const card = e.currentTarget;
+      setTimeout(() => {
+        card.classList.add('is-dragging');
+      }, 0);
+    };
+
+    // ドラッグ終了
+    window.handleDragEnd = function(e) {
+      e.currentTarget.classList.remove('is-dragging');
+      document.querySelectorAll('.seat-slot').forEach(el => el.classList.remove('drag-hover'));
+      setTimeout(() => {
+        draggedSeatId = null;
+        isDraggingActive = false;
+      }, 100);
+    };
+
+    // ドロップ領域上を通過
+    window.handleDragOver = function(e, slotId) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const slotEl = document.getElementById(`seat-${slotId}`);
+      if (slotEl && !slotEl.classList.contains('drag-hover')) {
+        slotEl.classList.add('drag-hover');
+      }
+    };
+
+    // ドロップ領域から離れたとき
+    window.handleDragLeave = function(e, slotId) {
+      const slotEl = document.getElementById(`seat-${slotId}`);
+      if (slotEl) {
+        slotEl.classList.remove('drag-hover');
+      }
+    };
+
+    // ドロップ時の入れ替え・移動処理
+    window.handleDrop = function(e, targetSeatId) {
+      e.preventDefault();
+      const slotEl = document.getElementById(`seat-${targetSeatId}`);
+      if (slotEl) {
+        slotEl.classList.remove('drag-hover');
+      }
+
+      if (draggedSeatId === null || draggedSeatId === targetSeatId) return;
+
+      const seats = floorData[currentFloor].seats;
+      const sourceSeat = seats[draggedSeatId];
+      const targetSeat = seats[targetSeatId];
+
+      // 全項目をスワップ
+      const temp = { ...targetSeat };
+      
+      const keys = ['name', 'kana', 'birth', 'age', 'care', 'wheelchair', 'staple', 'stapleGram', 'side', 'soupThick', 'soupGram', 'allergy', 'note', 'photo'];
+      keys.forEach(k => {
+        targetSeat[k] = sourceSeat[k];
+        sourceSeat[k] = temp[k];
+      });
+
+      renderSeats();
+      triggerAutoSync();
+    };
+
+    // 階数切り替え
+    window.switchFloor = function(floor) {
+      currentFloor = floor;
+      const btn2 = document.getElementById('btnFloor2');
+      const btn3 = document.getElementById('btnFloor3');
+      const badge = document.getElementById('currentFloorBadge');
+      const titleInput = document.getElementById('facilityNameInput');
+
+      if (floor === 2) {
+        btn2.className = 'px-3 py-1 rounded-md text-xs font-bold transition bg-emerald-600 text-white shadow-sm';
+        btn3.className = 'px-3 py-1 rounded-md text-xs font-bold transition text-slate-300 hover:text-white';
+        badge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300';
+        badge.textContent = '2階ホール (計20席)';
+      } else {
+        btn3.className = 'px-3 py-1 rounded-md text-xs font-bold transition bg-emerald-600 text-white shadow-sm';
+        btn2.className = 'px-3 py-1 rounded-md text-xs font-bold transition text-slate-300 hover:text-white';
+        badge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold border border-blue-300';
+        badge.textContent = '3階ホール (計20席)';
+      }
+      titleInput.value = floorData[currentFloor].title;
+      renderSeats();
+    };
+
+    // 座席のレンダリング
+    function renderSeats() {
+      const seats = floorData[currentFloor].seats;
+
+      seats.forEach(seat => {
+        const slotEl = document.getElementById(`seat-${seat.id}`);
+        if (!slotEl) return;
+
+        slotEl.ondragover = (e) => handleDragOver(e, seat.id);
+        slotEl.ondragleave = (e) => handleDragLeave(e, seat.id);
+        slotEl.ondrop = (e) => handleDrop(e, seat.id);
+
+        const hasResident = !!seat.name;
+
+        // 空席
+        if (!hasResident) {
+          slotEl.innerHTML = `
+            <div 
+              onclick="if(!isDraggingActive) openSeatModal(${seat.id})"
+              class="seat-card group w-full h-[122px] sm:h-[130px] bg-slate-50 hover:bg-emerald-50/70 border-2 border-dashed border-slate-300 hover:border-emerald-400 rounded-lg flex flex-col items-center justify-center p-1.5 cursor-pointer transition select-none">
+              <span class="text-xs font-mono text-slate-400 font-bold">席 ${seat.seatNumber}</span>
+              <span class="text-xs text-slate-400 group-hover:text-emerald-600 font-bold mt-1.5">＋ 追加</span>
+            </div>
+          `;
+          return;
+        }
+
+        const careInfo = CARE_STYLES[seat.care] || CARE_STYLES.none;
+
+        // 写真HTML（画面表示時は44〜48px、印刷時はCSSで50pxの大判表示）
+        const photoHtml = seat.photo 
+          ? `<img src="${seat.photo}" alt="${seat.name}" class="resident-photo w-11 h-11 sm:w-12 sm:h-12 rounded-lg object-cover border-2 border-slate-200 shadow-xs shrink-0 pointer-events-none">`
+          : `<div class="resident-photo photo-placeholder w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[10px] shrink-0 font-bold pointer-events-none">写真</div>`;
+
+        // 着席カード：縦幅を伸ばして写真・ふりがな・氏名を大幅に見やすく拡大
+        slotEl.innerHTML = `
+          <div 
+            draggable="true"
+            ondragstart="handleDragStart(event, ${seat.id})"
+            ondragend="handleDragEnd(event)"
+            onclick="if(!isDraggingActive) openQuickView(${seat.id})" 
+            title="タップで写真・名前を大きく確認 / ドラッグで席替え"
+            class="seat-card group w-full h-[122px] sm:h-[130px] bg-white hover:bg-emerald-50/40 border-2 border-slate-300 hover:border-emerald-500 rounded-lg p-1.5 cursor-grab active:cursor-grabbing transition shadow-sm flex flex-col justify-between select-none relative">
+            
+            <!-- 上部バー：席番 ＆ アイコンバッジ（車椅子・アレルギー・介助区分） -->
+            <div class="flex justify-between items-center w-full pb-1 border-b border-slate-100 pointer-events-none leading-none">
+              <span class="font-mono font-black text-slate-700 text-[10px] bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">#${seat.seatNumber}</span>
+              <div class="flex items-center gap-1">
+                ${seat.wheelchair ? '<span class="text-xs leading-none" title="車椅子">♿</span>' : ''}
+                ${seat.allergy ? '<span class="text-[8.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-300" title="禁食・アレルギー">⚠️禁食</span>' : ''}
+                <span class="px-1.5 py-0.5 rounded font-black text-[8px] sm:text-[8.5px] ${careInfo.bg} ${careInfo.text} border ${careInfo.border}">
+                  ${careInfo.label}
+                </span>
+              </div>
+            </div>
+
+            <!-- メイン部分：写真 ＋ ふりがな ＆ フルネーム（縦幅拡大に伴い写真・文字を拡大） -->
+            <div class="flex items-center gap-2 pointer-events-none flex-1 py-1 min-w-0">
+              ${photoHtml}
+              <div class="resident-text-wrap flex-1 min-w-0 flex flex-col justify-center overflow-hidden">
+                <!-- 実習生がすぐ読めるふりがな -->
+                <p class="resident-kana text-[9.5px] sm:text-[10.5px] text-emerald-800 font-extrabold leading-tight tracking-tight whitespace-nowrap overflow-hidden" title="${seat.kana}">
+                  ${seat.kana || '　'}
+                </p>
+                <!-- フルネーム（漢字） -->
+                <p class="resident-name text-xs sm:text-[13.5px] font-black text-slate-950 leading-snug tracking-tight whitespace-nowrap overflow-hidden flex items-baseline gap-0.5" title="${seat.name}">
+                  <span>${seat.name}</span>
+                  <span class="resident-name-suffix text-[9px] font-bold text-slate-400">様</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- 下部バー：食事形態 ＆ 拡大案内 -->
+            <div class="text-[8.5px] sm:text-[9.5px] pointer-events-none pt-1 border-t border-slate-100 flex justify-between items-center text-slate-600 leading-none">
+              <span class="font-bold text-slate-700 truncate max-w-[70px]">${seat.staple || '常食'}</span>
+              <span class="text-emerald-700 font-bold group-hover:underline flex items-center gap-0.5 text-[8px] sm:text-[8.5px] no-print">
+                <span>拡大</span>
+                <span>🔍</span>
+              </span>
+            </div>
+
+          </div>
+        `;
+      });
+    }
+
+    // 1タップ目：特大写真とお名前のクイック確認モーダルを開く
+    let quickActiveSeatId = null;
+    window.openQuickView = function(seatId) {
+      quickActiveSeatId = seatId;
+      const seat = floorData[currentFloor].seats[seatId];
+      if (!seat || !seat.name) {
+        // 空席の場合は直接編集画面へ
+        openSeatModal(seatId);
+        return;
+      }
+
+      document.getElementById('quickFloorLabel').textContent = `${currentFloor}階`;
+      document.getElementById('quickSeatLabel').textContent = `席 ${seat.seatNumber}`;
+      
+      document.getElementById('quickKana').textContent = seat.kana || '（ふりがな未設定）';
+      document.getElementById('quickName').innerHTML = `${seat.name} <span class="text-base font-bold text-slate-500">様</span>`;
+
+      const quickPhoto = document.getElementById('quickPhotoImg');
+      const quickNoPhoto = document.getElementById('quickNoPhoto');
+      if (seat.photo) {
+        quickPhoto.src = seat.photo;
+        quickPhoto.classList.remove('hidden');
+        quickNoPhoto.classList.add('hidden');
+      } else {
+        quickPhoto.src = '';
+        quickPhoto.classList.add('hidden');
+        quickNoPhoto.classList.remove('hidden');
+      }
+
+      // 介助バッジ
+      const careInfo = CARE_STYLES[seat.care] || CARE_STYLES.none;
+      const careBadge = document.getElementById('quickCareBadge');
+      careBadge.textContent = careInfo.label;
+      careBadge.className = `px-3 py-1 rounded-full font-black text-xs ${careInfo.bg} ${careInfo.text} border ${careInfo.border}`;
+
+      // 車椅子バッジ
+      const wcBadge = document.getElementById('quickWheelchairBadge');
+      if (seat.wheelchair) {
+        wcBadge.classList.remove('hidden');
+      } else {
+        wcBadge.classList.add('hidden');
+      }
+
+      // 禁食バッジ
+      const alBadge = document.getElementById('quickAllergyBadge');
+      if (seat.allergy) {
+        alBadge.textContent = `⚠️ 禁食: ${seat.allergy}`;
+        alBadge.classList.remove('hidden');
+      } else {
+        alBadge.classList.add('hidden');
+      }
+
+      document.getElementById('quickViewModal').classList.remove('hidden');
+    };
+
+    function closeQuickView() {
+      document.getElementById('quickViewModal').classList.add('hidden');
+      quickActiveSeatId = null;
+    }
+
+    document.getElementById('quickCloseBtn')?.addEventListener('click', closeQuickView);
+    document.getElementById('quickCancelBtn')?.addEventListener('click', closeQuickView);
+
+    // 「🍽️ 食事内容・詳細を見る」ボタンを押したときに編集・詳細モーダルを開く
+    document.getElementById('quickOpenDetailBtn')?.addEventListener('click', () => {
+      const seatId = quickActiveSeatId;
+      closeQuickView();
+      if (seatId !== null) {
+        openSeatModal(seatId);
+      }
+    });
+
+    // 生年月日入力時の年齢自動更新イベントリスナー
+    document.getElementById('modalBirthInput').addEventListener('input', function(e) {
+      const age = calculateAge(e.target.value);
+      document.getElementById('modalAgeInput').value = age;
+    });
+
+    function openSeatModal(seatId) {
+      currentEditingSeatId = seatId;
+      const seat = floorData[currentFloor].seats[seatId];
+
+      document.getElementById('modalFloorLabel').textContent = `${currentFloor}階`;
+      document.getElementById('modalSeatLabel').textContent = `席 ${seat.seatNumber}`;
+      
+      document.getElementById('modalNameInput').value = seat.name || '';
+      document.getElementById('modalKanaInput').value = seat.kana || '';
+      document.getElementById('modalBirthInput').value = seat.birth || '';
+      document.getElementById('modalAgeInput').value = seat.age || calculateAge(seat.birth);
+      
+      document.getElementById('modalCareSelect').value = seat.care || 'none';
+      document.getElementById('modalWheelchairCheck').checked = !!seat.wheelchair;
+
+      document.getElementById('modalStapleSelect').value = seat.staple || '常食';
+      document.getElementById('modalStapleGram').value = seat.stapleGram || '150g';
+      document.getElementById('modalSideSelect').value = seat.side || '常食';
+      document.getElementById('modalSoupThickSelect').value = seat.soupThick || 'なし';
+      document.getElementById('modalSoupGram').value = seat.soupGram || '100g';
+
+      document.getElementById('modalAllergyInput').value = seat.allergy || '';
+      document.getElementById('modalNoteInput').value = seat.note || '';
+
+      const previewImg = document.getElementById('modalPreviewImg');
+      const noPhotoText = document.getElementById('modalNoPhotoText');
+      const openCropBtn = document.getElementById('modalOpenCropBtn');
+
+      if (seat.photo) {
+        previewImg.src = seat.photo;
+        previewImg.classList.remove('hidden');
+        noPhotoText.classList.add('hidden');
+        if (openCropBtn) openCropBtn.classList.remove('hidden');
+      } else {
+        previewImg.src = '';
+        previewImg.classList.add('hidden');
+        noPhotoText.classList.remove('hidden');
+        if (openCropBtn) openCropBtn.classList.add('hidden');
+      }
+
+      document.getElementById('modalPhotoInput').value = '';
+      document.getElementById('residentModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('residentModal').classList.add('hidden');
+      currentEditingSeatId = null;
+    }
+
+    // ─── 手動トリミング操作用ステート ───
+    let cropImgObj = null;
+    let cropScale = 1.0;
+    let cropMinScale = 0.5;
+    let cropOffsetX = 0;
+    let cropOffsetY = 0;
+    let cropRotation = 0; // 0, 90, 180, 270
+    let isCropDragging = false;
+    let cropStartX = 0;
+    let cropStartY = 0;
+
+    const cropCanvas = document.getElementById('cropCanvas');
+    const cropCtx = cropCanvas ? cropCanvas.getContext('2d') : null;
+    const cropModal = document.getElementById('cropModal');
+    const cropZoomRange = document.getElementById('cropZoomRange');
+
+    // トリミング画面の再描画
+    function redrawCropCanvas() {
+      if (!cropCtx || !cropImgObj) return;
+
+      const cw = cropCanvas.width;
+      const ch = cropCanvas.height;
+      cropCtx.clearRect(0, 0, cw, ch);
+
+      cropCtx.save();
+      // キャンバスの中心を原点にする
+      cropCtx.translate(cw / 2 + cropOffsetX, ch / 2 + cropOffsetY);
+      cropCtx.rotate((cropRotation * Math.PI) / 180);
+      cropCtx.scale(cropScale, cropScale);
+
+      // 画像の中心を基準に描画
+      const iw = cropImgObj.naturalWidth || cropImgObj.width;
+      const ih = cropImgObj.naturalHeight || cropImgObj.height;
+      cropCtx.drawImage(cropImgObj, -iw / 2, -ih / 2, iw, ih);
+
+      cropCtx.restore();
+    }
+
+    // トリミングモーダルを開く
+    function openCropModal(imageSrc, autoDetectFace = false) {
+      if (!cropModal) return;
+      cropImgObj = new Image();
+      cropImgObj.onload = async function() {
+        const iw = cropImgObj.naturalWidth || cropImgObj.width;
+        const ih = cropImgObj.naturalHeight || cropImgObj.height;
+
+        // ガイド円（直径200px）を覆う初期スケールを算出
+        const targetSize = 200;
+        const baseScale = Math.max(targetSize / iw, targetSize / ih);
+        cropMinScale = baseScale * 0.7;
+        cropScale = baseScale * 1.15; // 少し余白を持たせる
+        cropOffsetX = 0;
+        cropOffsetY = 0;
+        cropRotation = 0;
+
+        // 顔検出APIが使える場合、初期位置を顔の中心へ自動フォーカス
+        if (autoDetectFace && 'FaceDetector' in window) {
+          try {
+            const faceDetector = new window.FaceDetector({ fastMode: false, maxDetectedFaces: 1 });
+            const faces = await faceDetector.detect(cropImgObj);
+            if (faces && faces.length > 0) {
+              const box = faces[0].boundingBox;
+              const faceCenterX = box.x + box.width / 2;
+              const faceCenterY = box.y + box.height / 2;
+
+              // 画像中心から顔中心へのオフセット
+              const diffX = iw / 2 - faceCenterX;
+              const diffY = ih / 2 - faceCenterY;
+
+              const faceSize = Math.max(box.width, box.height);
+              cropScale = Math.max(baseScale, targetSize / (faceSize * 1.8));
+
+              cropOffsetX = diffX * cropScale;
+              cropOffsetY = diffY * cropScale;
+            }
+          } catch (e) {
+            console.debug('Face auto-detect fallback:', e);
+          }
+        }
+
+        if (cropZoomRange) {
+          cropZoomRange.min = (cropMinScale).toFixed(2);
+          cropZoomRange.max = (baseScale * 4).toFixed(2);
+          cropZoomRange.value = cropScale.toFixed(2);
+        }
+
+        redrawCropCanvas();
+        cropModal.classList.remove('hidden');
+      };
+      cropImgObj.src = imageSrc;
+    }
+
+    // トリミング決定時の画像切り出し（画面で見えているガイド枠内を確実に抽出）
+    function confirmCrop() {
+      if (!cropImgObj || !cropCanvas) return;
+
+      const exportCanvas = document.createElement('canvas');
+      const size = 180; // 高解像度・軽量アイコンサイズ
+      exportCanvas.width = size;
+      exportCanvas.height = size;
+      const eCtx = exportCanvas.getContext('2d');
+
+      eCtx.imageSmoothingEnabled = true;
+      eCtx.imageSmoothingQuality = 'high';
+
+      // cropCanvasのガイド円(中心120, 120、直径200px: 範囲x:20, y:20, w:200, h:200)を直接確実にコピー
+      // これによりプレビュー画面で見えていた位置と100%完全に一致して反映されます
+      eCtx.drawImage(cropCanvas, 20, 20, 200, 200, 0, 0, size, size);
+
+      const finalDataUrl = exportCanvas.toDataURL('image/jpeg', 0.88);
+
+      const previewImg = document.getElementById('modalPreviewImg');
+      const noPhotoText = document.getElementById('modalNoPhotoText');
+      const openCropBtn = document.getElementById('modalOpenCropBtn');
+      const statusMsg = document.getElementById('faceDetectedStatusMsg');
+
+      if (previewImg) {
+        previewImg.src = finalDataUrl;
+        previewImg.classList.remove('hidden');
+      }
+      if (noPhotoText) noPhotoText.classList.add('hidden');
+      if (openCropBtn) openCropBtn.classList.remove('hidden');
+      if (statusMsg) {
+        statusMsg.textContent = '✅ トリミングを適用しました！「保存する」を押すと座席へ反映されます。';
+        statusMsg.className = 'text-[9.5px] text-emerald-600 font-bold leading-tight';
+      }
+
+      // 現在編集中の座席データにも直ちに適用
+      if (currentEditingSeatId !== null && floorData[currentFloor].seats[currentEditingSeatId]) {
+        floorData[currentFloor].seats[currentEditingSeatId].photo = finalDataUrl;
+      }
+
+      cropModal.classList.add('hidden');
+    }
+
+    // ─── ドラッグ移動（マウス ＆ タッチ対応） ───
+    function startCropDrag(clientX, clientY) {
+      isCropDragging = true;
+      cropStartX = clientX - cropOffsetX;
+      cropStartY = clientY - cropOffsetY;
+    }
+
+    function moveCropDrag(clientX, clientY) {
+      if (!isCropDragging) return;
+      cropOffsetX = clientX - cropStartX;
+      cropOffsetY = clientY - cropStartY;
+      redrawCropCanvas();
+    }
+
+    function endCropDrag() {
+      isCropDragging = false;
+    }
+
+    if (cropCanvas) {
+      // マウス操作
+      cropCanvas.addEventListener('mousedown', (e) => startCropDrag(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e) => moveCropDrag(e.clientX, e.clientY));
+      window.addEventListener('mouseup', endCropDrag);
+
+      // タッチ操作（タブレット・スマホ対応）
+      cropCanvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          startCropDrag(e.touches[0].clientX, e.touches[0].clientY);
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      cropCanvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1 && isCropDragging) {
+          moveCropDrag(e.touches[0].clientX, e.touches[0].clientY);
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      cropCanvas.addEventListener('touchend', endCropDrag);
+
+      // マウスホイールでのズーム
+      cropCanvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.05 : -0.05;
+        cropScale = Math.max(cropMinScale, Math.min(cropScale + delta, 4.0));
+        if (cropZoomRange) cropZoomRange.value = cropScale.toFixed(2);
+        redrawCropCanvas();
+      }, { passive: false });
+    }
+
+    // スライダー操作
+    if (cropZoomRange) {
+      cropZoomRange.addEventListener('input', (e) => {
+        cropScale = parseFloat(e.target.value);
+        redrawCropCanvas();
+      });
+    }
+
+    // ズーム +/- ボタン
+    document.getElementById('cropZoomInBtn')?.addEventListener('click', () => {
+      cropScale = Math.min(cropScale + 0.1, 4.0);
+      if (cropZoomRange) cropZoomRange.value = cropScale.toFixed(2);
+      redrawCropCanvas();
+    });
+    document.getElementById('cropZoomOutBtn')?.addEventListener('click', () => {
+      cropScale = Math.max(cropScale - 0.1, cropMinScale);
+      if (cropZoomRange) cropZoomRange.value = cropScale.toFixed(2);
+      redrawCropCanvas();
+    });
+
+    // 90度回転
+    document.getElementById('cropRotateBtn')?.addEventListener('click', () => {
+      cropRotation = (cropRotation + 90) % 360;
+      redrawCropCanvas();
+    });
+
+    // 位置リセット
+    document.getElementById('cropResetBtn')?.addEventListener('click', () => {
+      cropOffsetX = 0;
+      cropOffsetY = 0;
+      redrawCropCanvas();
+    });
+
+    // 決定 ＆ キャンセル
+    document.getElementById('cropConfirmBtn')?.addEventListener('click', confirmCrop);
+    document.getElementById('cropCancelBtn')?.addEventListener('click', () => {
+      cropModal.classList.add('hidden');
+    });
+    document.getElementById('cropCloseBtn')?.addEventListener('click', () => {
+      cropModal.classList.add('hidden');
+    });
+
+    // 既存写真の「位置・拡大を再調整」ボタン
+    document.getElementById('modalOpenCropBtn')?.addEventListener('click', () => {
+      const previewImg = document.getElementById('modalPreviewImg');
+      if (previewImg && previewImg.src) {
+        openCropModal(previewImg.src, false);
+      }
+    });
+
+    // 写真の新規読み込み時に手動トリミング画面を開く
+    document.getElementById('modalPhotoInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        openCropModal(event.target.result, true);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 写真削除
+    document.getElementById('modalRemovePhotoBtn').addEventListener('click', function() {
+      const previewImg = document.getElementById('modalPreviewImg');
+      const noPhotoText = document.getElementById('modalNoPhotoText');
+      const openCropBtn = document.getElementById('modalOpenCropBtn');
+      const statusMsg = document.getElementById('faceDetectedStatusMsg');
+      previewImg.src = '';
+      previewImg.classList.add('hidden');
+      noPhotoText.classList.remove('hidden');
+      if (openCropBtn) openCropBtn.classList.add('hidden');
+      document.getElementById('modalPhotoInput').value = '';
+      if (statusMsg) {
+        statusMsg.textContent = '※ 写真を選ぶと手動で位置移動やズーム調整ができます。';
+        statusMsg.className = 'text-[9.5px] text-slate-400 leading-tight';
+      }
+    });
+
+    // フォーム送信（保存）
+    document.getElementById('residentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (currentEditingSeatId === null) return;
+
+      const birth = document.getElementById('modalBirthInput').value;
+      const seat = floorData[currentFloor].seats[currentEditingSeatId];
+
+      seat.name = document.getElementById('modalNameInput').value.trim();
+      seat.kana = document.getElementById('modalKanaInput').value.trim();
+      seat.birth = birth;
+      seat.age = calculateAge(birth);
+
+      seat.care = document.getElementById('modalCareSelect').value;
+      seat.wheelchair = document.getElementById('modalWheelchairCheck').checked;
+
+      seat.staple = document.getElementById('modalStapleSelect').value;
+      seat.stapleGram = document.getElementById('modalStapleGram').value.trim();
+      seat.side = document.getElementById('modalSideSelect').value;
+      seat.soupThick = document.getElementById('modalSoupThickSelect').value;
+      seat.soupGram = document.getElementById('modalSoupGram').value.trim();
+
+      seat.allergy = document.getElementById('modalAllergyInput').value.trim();
+      seat.note = document.getElementById('modalNoteInput').value.trim();
+
+      const previewImg = document.getElementById('modalPreviewImg');
+      if (previewImg && !previewImg.classList.contains('hidden') && previewImg.src && previewImg.src.startsWith('data:')) {
+        seat.photo = previewImg.src;
+      }
+
+      renderSeats();
+      closeModal();
+      triggerAutoSync();
+    });
+
+    // この席を空席にする
+    document.getElementById('modalClearSeatBtn').addEventListener('click', function() {
+      if (currentEditingSeatId === null) return;
+      floorData[currentFloor].seats[currentEditingSeatId] = {
+        id: currentEditingSeatId,
+        seatNumber: currentEditingSeatId + 1,
+        name: '',
+        kana: '',
+        birth: '',
+        age: '',
+        care: 'none',
+        wheelchair: false,
+        staple: '常食',
+        stapleGram: '150g',
+        side: '常食',
+        soupThick: 'なし',
+        soupGram: '100g',
+        allergy: '',
+        note: '',
+        photo: ''
+      };
+      renderSeats();
+      closeModal();
+      triggerAutoSync();
+    });
+
+    document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+    document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+
+    // タイトル変更の保持
+    document.getElementById('facilityNameInput').addEventListener('input', function(e) {
+      floorData[currentFloor].title = e.target.value;
+      triggerAutoSync();
+    });
+
+    // JSONエクスポート
+    document.getElementById('btnExport').addEventListener('click', function() {
+      const exportData = {
+        version: "2.1",
+        savedAt: new Date().toISOString(),
+        floorData: floorData
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `老人ホーム食堂座席表_2F3F_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // JSONインポート
+    document.getElementById('inputImport').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const imported = JSON.parse(evt.target.result);
+          if (imported.floorData) {
+            if (imported.floorData[2]) floorData[2] = imported.floorData[2];
+            if (imported.floorData[3]) floorData[3] = imported.floorData[3];
+          } else if (Array.isArray(imported.seats)) {
+            floorData[currentFloor].seats = imported.seats;
+            if (imported.title) floorData[currentFloor].title = imported.title;
+          }
+          switchFloor(currentFloor);
+        } catch (err) {
+          console.error("読込エラー:", err);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // A4印刷プレビュー
+    document.getElementById('btnPrint').addEventListener('click', function() {
+      const now = new Date();
+      document.getElementById('printDate').textContent = `印刷日: ${now.toLocaleDateString('ja-JP')} (${currentFloor}階)`;
+      window.print();
+    });
+
+    // GAS同期設定とロジックの実装
+    const GAS_URL_KEY = 'dining_hall_gas_url';
+    const GAS_AUTO_KEY = 'dining_hall_gas_auto';
+    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwn783uGQxoF-kjvTwgOEyBNbMfvRNx7UNiw_KLX7wi9sLJAbxxS9JqRdTl3d3XYtKpoQ/exec';
+    let autoSyncTimer = null;
+
+    // Google Apps Script用サーバーコードの定義
+    const GAS_SERVER_CODE = `function doGet(e) {
+  var prop = PropertiesService.getScriptProperties();
+  var raw = prop.getProperty('DINING_SEAT_DATA') || '{}';
+  return ContentService.createTextOutput(raw).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var raw = e.postData.contents;
+    var prop = PropertiesService.getScriptProperties();
+    prop.setProperty('DINING_SEAT_DATA', raw);
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok', updated: new Date().toISOString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+    // 同期ステータスバッジの更新
+    function updateSyncStatus(status, text) {
+      const badge = document.getElementById('syncStatusBadge');
+      const statusText = document.getElementById('gasStatusText');
+      if (!badge || !statusText) return;
+
+      if (status === 'connected') {
+        badge.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        badge.title = text || 'クラウド接続中';
+        statusText.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+        statusText.textContent = text || '接続完了';
+      } else if (status === 'syncing') {
+        badge.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+        badge.title = text || '同期処理中...';
+        statusText.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+        statusText.textContent = text || '同期中...';
+      } else if (status === 'error') {
+        badge.className = 'w-2 h-2 rounded-full bg-rose-500';
+        badge.title = text || '同期エラー';
+        statusText.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800';
+        statusText.textContent = text || 'エラー';
+      } else {
+        badge.className = 'w-2 h-2 rounded-full bg-slate-400';
+        badge.title = '未接続';
+        statusText.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600';
+        statusText.textContent = '未設定';
+      }
+    }
+
+    // クラウドへのデータ保存（プッシュ）
+    async function pushToGas(isAuto = false) {
+      const url = (document.getElementById('gasUrlInput').value || DEFAULT_GAS_URL).trim();
+      if (!url) {
+        if (!isAuto) {
+          alertModal('GASのウェブアプリURLを入力してください。');
+        }
+        return;
+      }
+
+      updateSyncStatus('syncing', 'クラウド保存中...');
+      try {
+        const payload = {
+          version: '2.1',
+          savedAt: new Date().toISOString(),
+          floorData: floorData
+        };
+
+        await fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        updateSyncStatus('connected', '同期完了 (' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) + ')');
+      } catch (err) {
+        console.error('GAS送信エラー:', err);
+        updateSyncStatus('error', '保存失敗');
+      }
+    }
+
+    // クラウドからの最新取得（プル）
+    async function pullFromGas() {
+      const url = (document.getElementById('gasUrlInput').value || DEFAULT_GAS_URL).trim();
+      if (!url) {
+        alertModal('GASのウェブアプリURLを入力してください。');
+        return false;
+      }
+
+      updateSyncStatus('syncing', '最新取得中...');
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.floorData && (data.floorData[2] || data.floorData[3])) {
+          if (data.floorData[2]) floorData[2] = data.floorData[2];
+          if (data.floorData[3]) floorData[3] = data.floorData[3];
+          switchFloor(currentFloor);
+          updateSyncStatus('connected', 'クラウド最新取得済');
+          return true;
+        } else {
+          updateSyncStatus('connected', 'クラウド接続中（初期状態）');
+          return false;
+        }
+      } catch (err) {
+        console.error('GAS受信エラー:', err);
+        updateSyncStatus('error', '取得失敗');
+        return false;
+      }
+    }
+
+    // 席替えや編集時に自動同期するトリガー
+    function triggerAutoSync() {
+      const autoCheck = document.getElementById('autoSyncCheck');
+      const urlInput = document.getElementById('gasUrlInput');
+      if (!autoCheck || !autoCheck.checked || !urlInput || !urlInput.value.trim()) {
+        return;
+      }
+
+      if (autoSyncTimer) clearTimeout(autoSyncTimer);
+      autoSyncTimer = setTimeout(() => {
+        pushToGas(true);
+      }, 600);
+    }
+
+    // 簡易メッセージトースト/モーダル
+    function alertModal(message) {
+      const btn = document.getElementById('btnGasModal');
+      if (btn) btn.click();
+      console.warn(message);
+    }
+
+    // GASモーダル初期化と各種イベントハンドラ
+    const gasModal = document.getElementById('gasModal');
+    const btnGasModal = document.getElementById('btnGasModal');
+    const gasModalCloseBtn = document.getElementById('gasModalCloseBtn');
+    const gasUrlInput = document.getElementById('gasUrlInput');
+    const autoSyncCheck = document.getElementById('autoSyncCheck');
+    const btnGasPush = document.getElementById('btnGasPush');
+    const btnGasPull = document.getElementById('btnGasPull');
+    const btnCopyGasCode = document.getElementById('btnCopyGasCode');
+    const gasCodePre = document.getElementById('gasCodePre');
+
+    if (gasCodePre) {
+      gasCodePre.textContent = GAS_SERVER_CODE;
+    }
+
+    if (btnGasModal && gasModal) {
+      btnGasModal.addEventListener('click', () => gasModal.classList.remove('hidden'));
+    }
+    if (gasModalCloseBtn && gasModal) {
+      gasModalCloseBtn.addEventListener('click', () => gasModal.classList.add('hidden'));
+    }
+
+    // URL保存＆自動同期設定保存
+    if (gasUrlInput) {
+      gasUrlInput.value = localStorage.getItem(GAS_URL_KEY) || DEFAULT_GAS_URL;
+      gasUrlInput.addEventListener('change', () => {
+        const val = gasUrlInput.value.trim() || DEFAULT_GAS_URL;
+        localStorage.setItem(GAS_URL_KEY, val);
+        updateSyncStatus('connected', 'URL設定済');
+      });
+      updateSyncStatus('connected', 'URL設定済');
+    }
+
+    if (autoSyncCheck) {
+      const savedAuto = localStorage.getItem(GAS_AUTO_KEY);
+      if (savedAuto !== null) {
+        autoSyncCheck.checked = savedAuto === 'true';
+      }
+      autoSyncCheck.addEventListener('change', () => {
+        localStorage.setItem(GAS_AUTO_KEY, autoSyncCheck.checked ? 'true' : 'false');
+      });
+    }
+
+    if (btnGasPush) btnGasPush.addEventListener('click', () => pushToGas(false));
+    if (btnGasPull) btnGasPull.addEventListener('click', () => pullFromGas());
+
+    // GASコードのクリップボードコピー
+    if (btnCopyGasCode) {
+      btnCopyGasCode.addEventListener('click', () => {
+        const temp = document.createElement('textarea');
+        temp.value = GAS_SERVER_CODE;
+        temp.style.position = 'fixed';
+        temp.style.left = '-9999px';
+        document.body.appendChild(temp);
+        temp.select();
+        try {
+          document.execCommand('copy');
+          btnCopyGasCode.textContent = '✅ コピー完了！';
+          setTimeout(() => {
+            btnCopyGasCode.textContent = '📋 GASコードをコピー';
+          }, 2000);
+        } catch (e) {
+          console.error('コピー失敗:', e);
+        }
+        document.body.removeChild(temp);
+      });
+    }
+
+    // 初期起動
+    window.addEventListener('DOMContentLoaded', async () => {
+      const now = new Date();
+      document.getElementById('printDate').textContent = `印刷日: ${now.toLocaleDateString('ja-JP')} (2階)`;
+      
+      // GAS URLの初期化
+      if (gasUrlInput && !gasUrlInput.value) {
+        gasUrlInput.value = DEFAULT_GAS_URL;
+      }
+
+      // クラウド（GAS）から最新データの取得を試みる
+      await pullFromGas();
+      switchFloor(currentFloor);
+    });
+  </script>
+</body>
+</html>
