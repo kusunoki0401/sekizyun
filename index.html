@@ -80,31 +80,36 @@
         flex-shrink: 0 !important;
       }
 
-      /* 印刷時：テキストエリアを最大化し、文字切れを完全に防止 */
+      /* 印刷時：テキストエリアを最大化し、文字切れ・はみ出しを完全防止 */
       .resident-text-wrap {
-        overflow: visible !important;
-        padding-left: 3px !important;
+        overflow: hidden !important;
+        padding-left: 2px !important;
+        min-width: 0 !important;
       }
 
-      /* 印刷時：ふりがなとお名前（切れない限界特大サイズ・文字詰め） */
+      /* 印刷時：ふりがなとお名前（1行でカード内に収める設定） */
       .resident-kana {
-        font-size: 11px !important;
-        line-height: 1.25 !important;
+        font-size: 10px !important;
+        line-height: 1.15 !important;
         font-weight: 800 !important;
         color: #047857 !important;
-        overflow: visible !important;
-        letter-spacing: -0.3px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        letter-spacing: -0.4px !important;
       }
       .resident-name {
-        font-size: 15px !important;
-        line-height: 1.25 !important;
+        font-size: 12.5px !important;
+        line-height: 1.15 !important;
         font-weight: 900 !important;
         color: #000000 !important;
-        overflow: visible !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
         letter-spacing: -0.4px !important;
       }
       .resident-name-suffix {
-        font-size: 10px !important;
+        font-size: 9px !important;
         color: #334155 !important;
         font-weight: 700 !important;
       }
@@ -973,6 +978,34 @@
       renderSeats();
     };
 
+    // 名前の文字数に応じた可変フォントサイズ調整 (2行化・枠外はみ出しを防止)
+    function getNameFontSizeClass(name) {
+      if (!name) return 'text-xs sm:text-[13px] tracking-tight';
+      const len = name.length;
+      if (len <= 4) {
+        return 'text-[11.5px] sm:text-[13px] tracking-tight';
+      } else if (len <= 6) {
+        return 'text-[10px] sm:text-[11.5px] tracking-tighter';
+      } else if (len <= 8) {
+        return 'text-[9px] sm:text-[10.5px] tracking-tighter';
+      } else {
+        return 'text-[8px] sm:text-[9.5px] tracking-tighter';
+      }
+    }
+
+    // ふりがなの文字数に応じた可変フォントサイズ調整
+    function getKanaFontSizeClass(kana) {
+      if (!kana) return 'text-[9px] sm:text-[10px] tracking-tight';
+      const len = kana.length;
+      if (len <= 6) {
+        return 'text-[9px] sm:text-[10px] tracking-tight';
+      } else if (len <= 9) {
+        return 'text-[8px] sm:text-[9px] tracking-tighter';
+      } else {
+        return 'text-[7.5px] sm:text-[8px] tracking-tighter';
+      }
+    }
+
     // 座席のレンダリング
     function renderSeats() {
       const seats = floorData[currentFloor].seats;
@@ -1002,12 +1035,15 @@
 
         const careInfo = CARE_STYLES[seat.care] || CARE_STYLES.none;
 
-        // 写真HTML（画面表示時は44〜48px、印刷時はCSSで50pxの大判表示）
+        // 写真HTML（画面表示時はスリムなスマートサイズ、印刷時はCSSで最大化）
         const photoHtml = seat.photo 
-          ? `<img src="${seat.photo}" alt="${seat.name}" class="resident-photo w-11 h-11 sm:w-12 sm:h-12 rounded-lg object-cover border-2 border-slate-200 shadow-xs shrink-0 pointer-events-none">`
-          : `<div class="resident-photo photo-placeholder w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[10px] shrink-0 font-bold pointer-events-none">写真</div>`;
+          ? `<img src="${seat.photo}" alt="${seat.name}" class="resident-photo w-9 h-9 sm:w-10 sm:h-10 rounded-lg object-cover border-2 border-slate-200 shadow-xs shrink-0 pointer-events-none">`
+          : `<div class="resident-photo photo-placeholder w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[9px] shrink-0 font-bold pointer-events-none">写真</div>`;
 
-        // 着席カード：縦幅を伸ばして写真・ふりがな・氏名を大幅に見やすく拡大
+        const nameFontClass = getNameFontSizeClass(seat.name);
+        const kanaFontClass = getKanaFontSizeClass(seat.kana);
+
+        // 着席カード：1行でピッタリ納めるスマートレイアウト
         slotEl.innerHTML = `
           <div 
             draggable="true"
@@ -1029,18 +1065,18 @@
               </div>
             </div>
 
-            <!-- メイン部分：写真 ＋ ふりがな ＆ フルネーム（縦幅拡大に伴い写真・文字を拡大） -->
-            <div class="flex items-center gap-2 pointer-events-none flex-1 py-1 min-w-0">
+            <!-- メイン部分：写真 ＋ ふりがな ＆ フルネーム（2行化・はみ出しゼロの可変サイズ） -->
+            <div class="flex items-center gap-1.5 pointer-events-none flex-1 py-1 min-w-0">
               ${photoHtml}
               <div class="resident-text-wrap flex-1 min-w-0 flex flex-col justify-center overflow-hidden">
-                <!-- 実習生がすぐ読めるふりがな -->
-                <p class="resident-kana text-[9.5px] sm:text-[10.5px] text-emerald-800 font-extrabold leading-tight tracking-tight whitespace-nowrap overflow-hidden" title="${seat.kana}">
+                <!-- 実習生がすぐ読めるふりがな (1行固定) -->
+                <p class="resident-kana ${kanaFontClass} text-emerald-800 font-extrabold leading-none whitespace-nowrap overflow-hidden text-ellipsis" title="${seat.kana}">
                   ${seat.kana || '　'}
                 </p>
-                <!-- フルネーム（漢字） -->
-                <p class="resident-name text-xs sm:text-[13.5px] font-black text-slate-950 leading-snug tracking-tight whitespace-nowrap overflow-hidden flex items-baseline gap-0.5" title="${seat.name}">
-                  <span>${seat.name}</span>
-                  <span class="resident-name-suffix text-[9px] font-bold text-slate-400">様</span>
+                <!-- フルネーム漢字 (1行固定・文字数可変対応) -->
+                <p class="resident-name ${nameFontClass} font-black text-slate-950 leading-snug whitespace-nowrap overflow-hidden flex items-baseline gap-0.5" title="${seat.name}">
+                  <span class="truncate">${seat.name}</span>
+                  <span class="resident-name-suffix text-[8.5px] sm:text-[9.5px] font-bold text-slate-400 shrink-0">様</span>
                 </p>
               </div>
             </div>
